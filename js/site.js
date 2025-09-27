@@ -182,96 +182,96 @@ window.addEventListener('resize', function() {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  const carousel = document.querySelector(".product-carousel");
-  let cards = Array.from(document.querySelectorAll(".product-card"));
-  const prevBtn = document.querySelector(".carousel-btn.prev");
-  const nextBtn = document.querySelector(".carousel-btn.next");
+  const wrapper = document.getElementById("product-carousel-wrapper");
+  if (!wrapper) {
+    return;
+  }
 
-  // Clone first and last card
-  const firstClone = cards[0].cloneNode(true);
-  const lastClone = cards[cards.length - 1].cloneNode(true);
-  firstClone.classList.add("clone");
-  lastClone.classList.add("clone");
+  const viewport = wrapper.querySelector(".product-carousel");
+  const track = wrapper.querySelector(".product-track");
+  const slides = Array.from(track?.querySelectorAll(".product-card") ?? []);
+  const prevBtn = wrapper.querySelector(".carousel-btn.prev");
+  const nextBtn = wrapper.querySelector(".carousel-btn.next");
 
-  // Append/prepend clones
-  carousel.appendChild(firstClone);
-  carousel.insertBefore(lastClone, cards[0]);
+  if (!viewport || !track || slides.length === 0) {
+    return;
+  }
 
-  // Refresh card list
-  cards = Array.from(document.querySelectorAll(".product-card"));
+  let currentIndex = 0;
+  let isTransitioning = false;
 
-  // Helper: update active card
-  function updateActiveCard() {
-    let center = carousel.scrollLeft + carousel.offsetWidth / 2;
-    let closestCard = null;
-    let closestOffset = Infinity;
-
-    cards.forEach(card => {
-      let cardCenter = card.offsetLeft + card.offsetWidth / 2;
-      let offset = Math.abs(center - cardCenter);
-      if (offset < closestOffset) {
-        closestOffset = offset;
-        closestCard = card;
-      }
+  function updateActiveSlide() {
+    slides.forEach((slide, index) => {
+      slide.classList.toggle("active", index === currentIndex);
     });
-
-    cards.forEach(card => card.classList.remove("active"));
-    if (closestCard && !closestCard.classList.contains("clone")) {
-      closestCard.classList.add("active");
-    }
   }
 
-
-function checkClones() {
-  const firstReal = cards[1]; // 0 = lastClone
-  const lastReal = cards[cards.length - 2]; // last = firstClone
-
-  if (carousel.scrollLeft <= cards[0].offsetLeft + 5) {
-    // At left clone → jump to last real
-    carousel.scrollLeft = lastReal.offsetLeft;
-  }
-  if (carousel.scrollLeft >= cards[cards.length - 1].offsetLeft - 5) {
-    // At right clone → jump to first real
-    carousel.scrollLeft = firstReal.offsetLeft;
-  }
-}
-
-
-  // Scroll to next/prev
-  function scrollToCard(direction) {
-    const activeCard = document.querySelector(".product-card.active") || cards[1];
-    console.log('workss', );
-    let newCard;
-
-    if (direction === "next") {
-      newCard = activeCard.nextElementSibling;
+  function applyTransform(value, { animate = true } = {}) {
+    if (!animate) {
+      track.classList.add("no-transition");
     } else {
-      newCard = activeCard.previousElementSibling;
+      track.classList.remove("no-transition");
     }
-
-    newCard.scrollIntoView({ behavior: "smooth", inline: "center" });
-    setTimeout(() => {
-      checkClones();
-      updateActiveCard();
-    }, 500);
+    track.style.transform = `translateX(${value}px)`;
   }
 
-  prevBtn.addEventListener("click", () => scrollToCard("prev"));
-  nextBtn.addEventListener("click", () => scrollToCard("next"));
+  function calculateTranslate(index) {
+    const target = slides[index];
+    if (!target) {
+      return 0;
+    }
 
-  carousel.addEventListener("scroll", () => {
-    clearTimeout(carousel.scrollTimeout);
-    carousel.scrollTimeout = setTimeout(() => {
-      checkClones();
-      updateActiveCard();
-    }, 200);
+    const viewportWidth = viewport.clientWidth;
+    const slideWidth = target.clientWidth;
+    const offsetLeft = target.offsetLeft;
+    const centerOffset = (viewportWidth - slideWidth) / 2;
+    return centerOffset - offsetLeft;
+  }
+
+  function goTo(index, { animate = true } = {}) {
+    const total = slides.length;
+    currentIndex = (index + total) % total;
+    updateActiveSlide();
+    const translate = calculateTranslate(currentIndex);
+    applyTransform(translate, { animate });
+  }
+
+  prevBtn?.addEventListener("click", () => {
+    if (isTransitioning) {
+      return;
+    }
+    isTransitioning = true;
+    goTo(currentIndex - 1, { animate: true });
   });
 
-  window.addEventListener("resize", updateActiveCard);
+  nextBtn?.addEventListener("click", () => {
+    if (isTransitioning) {
+      return;
+    }
+    isTransitioning = true;
+    goTo(currentIndex + 1, { animate: true });
+  });
 
-  // Start at the first real card
-  setTimeout(() => {
-    cards[1].scrollIntoView({ inline: "center" });
-    updateActiveCard();
-  }, 50);
+  track.addEventListener("transitionend", (event) => {
+    if (event.propertyName === "transform") {
+      isTransitioning = false;
+    }
+  });
+
+  wrapper.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      prevBtn?.click();
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      nextBtn?.click();
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    goTo(currentIndex, { animate: false });
+  });
+
+  goTo(0, { animate: false });
 });

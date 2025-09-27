@@ -1059,24 +1059,36 @@ html, body {
 }
 
 .product-carousel {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 40px 0;
+}
+
+.product-track {
   display: flex;
   flex-direction: row;
-  overflow-x: scroll;       /* allow horizontal scroll */
-  overflow-y: hidden;       /* 🚫 block vertical scroll */
-  white-space: nowrap;
-  scroll-snap-type: x mandatory;
+  flex-wrap: nowrap;
   gap: 40px;
-  padding: 40px 0;
-  scrollbar-width: none;    /* hide Firefox scrollbar */
+  align-items: stretch;
+  will-change: transform;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
 }
-.product-carousel::-webkit-scrollbar {
-  display: none; /* hide scrollbar Chrome/Safari */
+
+.product-track:active {
+  cursor: grabbing;
+}
+
+.product-track.no-transition {
+  transition: none !important;
 }
 
 .product-card {
   flex: 0 0 70%;
   max-width: 400px;
-  scroll-snap-align: center;
   background: #111;
   border-radius: 15px;
   padding: 20px;
